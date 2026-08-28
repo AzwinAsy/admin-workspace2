@@ -268,7 +268,17 @@ let rooms=[{id:'TUBO',name:'TUBO',email:'tubo@jme.com.my',color:'#A8C3A0',icon:'
 const currentWeek=getWeekDates(today());
 // Room bookings now come live from n8n Outlook webhook only. No demo bookings.
 let bookings=[];
-const API_BASE=(localStorage.getItem('jemcoApiBase')||'https://jemcomanufacturing.app.n8n.cloud/webhook').replace(/\/$/,'');
+const N8N_CLOUD_BASE='https://jemcomanufacturing.app.n8n.cloud/webhook';
+function cleanN8nBase(value){
+  const clean=String(value||'').trim().replace(/\/$/,'');
+  if(!clean||/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(clean))return '';
+  return clean;
+}
+const API_BASE=cleanN8nBase(localStorage.getItem('jemcoApiBase'))||N8N_CLOUD_BASE;
+try{
+  if(localStorage.getItem('jemcoApiBase')!==API_BASE)localStorage.setItem('jemcoApiBase',API_BASE);
+  if(!cleanN8nBase(localStorage.getItem('jemcoStationeryApiBase')))localStorage.setItem('jemcoStationeryApiBase',API_BASE);
+}catch(_){ }
 const API={
   visitors:API_BASE+'/visitors',
   staffMaster:API_BASE+'/staff-master',
@@ -1740,17 +1750,19 @@ function getStationeryPublicBase(){
   return '';
 }
 function getStationeryN8nBase(){
-  const q=new URLSearchParams(location.search).get('stationeryApi');
-  if(q){try{localStorage.setItem('jemcoStationeryApiBase',q.replace(/\/$/,''));}catch(_){ } return q.replace(/\/$/,'');}
-  return (localStorage.getItem('jemcoStationeryApiBase')||'').trim().replace(/\$/,'').replace(/\/$/,'');
+  const q=cleanN8nBase(new URLSearchParams(location.search).get('stationeryApi'));
+  const saved=cleanN8nBase(localStorage.getItem('jemcoStationeryApiBase'));
+  const base=q||saved||API_BASE;
+  try{if(localStorage.getItem('jemcoStationeryApiBase')!==base)localStorage.setItem('jemcoStationeryApiBase',base);}catch(_){ }
+  return base;
 }
 function stationeryApiUrl(path){const base=getStationeryN8nBase()||API_BASE;return base.replace(/\/$/,'')+'/'+path.replace(/^\//,'');}
 function setStationeryN8nUrl(){
   const current=getStationeryN8nBase();
   const url=prompt('Paste PUBLIC n8n webhook base URL. Example: https://n8n.yourcompany.com/webhook',current||'');
   if(!url)return;
-  const clean=url.trim().replace(/\/$/,'');
-  if(!/^https?:\/\//i.test(clean)){toast('⚠️ Please enter a full http/https n8n URL.');return;}
+  const clean=cleanN8nBase(url);
+  if(!clean){toast('⚠️ Use the public n8n Cloud URL, not localhost.');return;}
   localStorage.setItem('jemcoStationeryApiBase',clean);
   toast('✅ Stationery n8n URL saved. Generate the Staff QR again.');
 }
