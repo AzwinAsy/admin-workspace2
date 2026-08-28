@@ -268,7 +268,7 @@ let rooms=[{id:'TUBO',name:'TUBO',email:'tubo@jme.com.my',color:'#A8C3A0',icon:'
 const currentWeek=getWeekDates(today());
 // Room bookings now come live from n8n Outlook webhook only. No demo bookings.
 let bookings=[];
-const API_BASE=(localStorage.getItem('jemcoApiBase')||'http://localhost:5678/webhook').replace(/\/$/,'');
+const API_BASE=(localStorage.getItem('jemcoApiBase')||'https://jemcomanufacturing.app.n8n.cloud/webhook').replace(/\/$/,'');
 const API={
   visitors:API_BASE+'/visitors',
   staffMaster:API_BASE+'/staff-master',
