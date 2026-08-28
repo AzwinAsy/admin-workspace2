@@ -306,7 +306,6 @@ const VISITORS_API=API.visitors;
 let visitorApiStatus='Connecting to Excel...';
 let facilityApiStatus='Connecting to Excel...';
 let systemApiStatus='Connecting to n8n...';
-let visitorAutoRefresh=null;
 let visitors=[{name:'Aiman Hakim',company:'ABC Supplier',meet:'Arif',dept:'Admin',purpose:'Delivery',vehicle:'BQS 8821',phone:'0123456789',tag:'Supplier',time:'09:12'},{name:'Mira Tan',company:'MR ROBOT',meet:'Edwin',dept:'Operations',purpose:'Project Discussion',vehicle:'VBC 1122',phone:'0111111111',tag:'MR ROBOT',time:'08:40'},{name:'Faris',company:'JWS',meet:'HR Team',dept:'HR',purpose:'Interview',vehicle:'',phone:'0133333333',tag:'Interview',time:'10:05'}];
 // Staff list must come from Excel StaffMaster only. No demo/default staff.
 let staff=[];
@@ -334,7 +333,7 @@ function roomLogoHtml(room){
 }
 
 function hubFromCompany(company=''){const c=String(company).toUpperCase();if(c.includes('JWS'))return 'JWS';if(c.includes('MR ROBOT'))return 'MR ROBOT';return 'JEMCO';}
-document.addEventListener('DOMContentLoaded',()=>{todayText.textContent=new Date().toLocaleDateString('en-MY',{weekday:'long',year:'numeric',month:'long',day:'numeric'});qDate.value=today();bDate.value=today();bStart.value='09:00';bEnd.value='10:00';sDate.value=today();document.getElementById('staffWeekAnchor').value=today();bindNav();updateTopAdminBar();renderAll();loadAllFromApis();visitorAutoRefresh=setInterval(loadAllFromApis,300000);if(location.hash==='#visitor-form')setTimeout(openVisitorModal,300);if(location.hash==='#stationery-form')setTimeout(()=>{loadStationeryFromApi();},300);});
+document.addEventListener('DOMContentLoaded',()=>{todayText.textContent=new Date().toLocaleDateString('en-MY',{weekday:'long',year:'numeric',month:'long',day:'numeric'});qDate.value=today();bDate.value=today();bStart.value='09:00';bEnd.value='10:00';sDate.value=today();document.getElementById('staffWeekAnchor').value=today();bindNav();updateTopAdminBar();renderAll();loadAllFromApis();if(location.hash==='#visitor-form')setTimeout(openVisitorModal,300);if(location.hash==='#stationery-form')setTimeout(()=>{loadStationeryFromApi();},300);});
 function bindNav(){document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active');pageTitle.textContent=b.textContent.trim().replace(/[📊✨🪪🦺👥🛠️🗓️⚙️]/g,'').trim();if(innerWidth<760)toggleSidebar(false);});}
 function renderAll(){renderOptions();renderDashboard();renderRooms();renderVisitors();renderPTW();renderStaff();renderFacility();renderStationery();renderSettings();}
 function renderOptions(){qRoom.innerHTML=rooms.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');bRoom.innerHTML=qRoom.innerHTML;const activeStaff=staff.filter(s=>(s.status||'Active')==='Active');sName.innerHTML=activeStaff.map(s=>`<option>${s.name}</option>`).join('');}
@@ -415,7 +414,10 @@ async function fetchApiRows(url){
   const sep=url.includes('?')?'&':'?';
   const res=await fetch(url+sep+'_=' + Date.now(),{cache:'no-store'});
   if(!res.ok) throw new Error('HTTP '+res.status+' for '+url);
-  return unpackRows(await res.json());
+  const body=await res.text();
+  if(!body.trim()) throw new Error('Empty response from '+url+' (n8n unavailable or execution limit reached)');
+  try{return unpackRows(JSON.parse(body));}
+  catch(e){throw new Error('Invalid JSON response from '+url);}
 }
 async function loadVisitorsFromApi(){
   try{
